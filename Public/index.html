@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Personas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <main class="page">
+
+        <header class="page__header">
+            <div class="page__header-top">
+                <p class="eyebrow">Registro</p>
+                <button type="button" id="btnThemeToggle" class="btn btn--icon" aria-label="Cambiar tema">
+                    <span id="themeIcon">🌙</span>
+                </button>
+            </div>
+            <h1>Personas</h1>
+        </header>
+
+        <section class="card" aria-labelledby="form-title">
+            <h2 id="form-title" class="card__title">Agregar persona</h2>
+
+            <form id="formPersona" novalidate>
+                <div class="field">
+                    <label for="nombre">Nombre</label>
+                    <input type="text" id="nombre" placeholder="Ej. María Torres" autocomplete="off">
+                    <span class="field__error" id="errorNombre" role="alert"></span>
+                </div>
+
+                <div class="field">
+                    <label for="edad">Edad</label>
+                    <input type="number" id="edad" placeholder="Ej. 32" min="0" max="119">
+                    <span class="field__error" id="errorEdad" role="alert"></span>
+                </div>
+
+                <div class="field__actions">
+                    <button type="submit" id="btnAgregar" class="btn btn--primary">Agregar</button>
+                    <button type="button" id="btnCancelar" class="btn btn--ghost" hidden>Cancelar</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="card">
+            <div class="toolbar">
+                <div class="field field--search">
+                    <label for="buscar">Buscar</label>
+                    <input
+                        type="text"
+                        id="buscar"
+                        placeholder="Buscar por nombre...">
+                </div>
+
+                <div class="toolbar__actions">
+                    <button type="button" id="btnExportarJSON" class="btn btn--ghost">Exportar JSON</button>
+                    <button type="button" id="btnExportarCSV" class="btn btn--ghost">Exportar CSV</button>
+                    <label class="btn btn--ghost btn--file">
+                        Importar JSON
+                        <input type="file" id="inputImportar" accept="application/json" hidden>
+                    </label>
+                </div>
+            </div>
+
+            <p class="status" id="statusImport" role="status"></p>
+
+            <div class="table-wrap">
+                <table class="table" id="tablaPersonas">
+                    <thead>
+                        <tr>
+                            <th data-sort="nombre" tabindex="0" role="button" aria-label="Ordenar por nombre">
+                                Nombre <span class="sort-arrow" data-arrow="nombre"></span>
+                            </th>
+                            <th data-sort="edad" tabindex="0" role="button" aria-label="Ordenar por edad">
+                                Edad <span class="sort-arrow" data-arrow="edad"></span>
+                            </th>
+                            <th class="th-acciones">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+
+                <p class="empty-state" id="emptyState" hidden>No hay personas para mostrar.</p>
+            </div>
+
+            <div class="card__footer">
+                <p class="total-stamp">
+                    <span class="total-stamp__count" id="totalPersonas">0</span>
+                    <span class="total-stamp__label">registradas</span>
+                </p>
+
+                <div class="pagination" id="pagination">
+                    <button type="button" id="btnPrev" class="btn btn--ghost">Anterior</button>
+                    <span id="pageInfo" class="pagination__info">Página 1 de 1</span>
+                    <button type="button" id="btnNext" class="btn btn--ghost">Siguiente</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Agrega esto dentro del segundo <section class="card">, justo debajo de .status y antes de .table-wrap -->
+<div class="stats-grid" id="statsGrid">
+    <div class="stat-card">
+        <span class="stat-card__label">Promedio de edad</span>
+        <span class="stat-card__value" id="statPromedio">0</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-card__label">Mayor</span>
+        <span class="stat-card__value" id="statMayor">-</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-card__label">Menor</span>
+        <span class="stat-card__value" id="statMenor">-</span>
+    </div>
+</div>
+
+    </main>
+
+    <!-- Modal personalizado para eliminar -->
+    <dialog id="modalEliminar" class="modal">
+        <div class="modal__card">
+            <h3 class="modal__title">Confirmar eliminación</h3>
+            <p id="modalTexto">¿Estás seguro de que deseas eliminar este registro?</p>
+            <div class="modal__actions">
+                <button type="button" id="btnCancelarModal" class="btn btn--ghost">Cancelar</button>
+                <button type="button" id="btnConfirmarModal" class="btn btn--danger">Eliminar</button>
+            </div>
+        </div>
+    </dialog>
+
+<script src="app.js"></script>
+
+</body>
+</html>
