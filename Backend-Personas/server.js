@@ -48,12 +48,19 @@ fastify.post("/api/personas", async (request, reply) => {
 // PUT: Actualizar persona por ID
 fastify.put("/api/personas/:id", async (request, reply) => {
   const { id } = request.params;
-  const { nombre, edad } = request.body;
+  const validacion = personaSchema.safeParse(request.body);
+
+  if (!validacion.success) {
+    return reply.status(400).send({
+      error: "Datos inválidos",
+      detalles: validacion.error.errors.map((err) => err.message),
+    });
+  }
 
   try {
     const actualizada = await prisma.persona.update({
       where: { id },
-      data: { nombre, edad: Number(edad) },
+      data: validacion.data,
     });
     return actualizada;
   } catch (error) {
@@ -72,11 +79,14 @@ fastify.delete("/api/personas/:id", async (request, reply) => {
   }
 });
 
+
 // Iniciar servidor
+const PORT = process.env.PORT || 5180;
+
 const start = async () => {
   try {
-    await fastify.listen({ port: 5180, host: "0.0.0.0" });
-    console.log("Servidor corriendo en http://localhost:3000");
+    await fastify.listen({ port: Number(PORT), host: "0.0.0.0" });
+    console.log(`Servidor corriendo en puerto ${PORT}`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
