@@ -1,5 +1,9 @@
 let personas = [];
+// Correcto:
 const API_URL = "https://proyecto-usuarios-62v9.onrender.com/api/personas";
+
+// Incorrecto (provoca Failed to fetch en GitHub Pages):
+// const API_URL = "http://proyecto-usuarios-62v9.onrender.com/api/personas";
 
 let indiceEdicion = null;
 let ordenCampo = null;
@@ -195,52 +199,38 @@ function generarID() {
         : Date.now().toString(36) + Math.random().toString(36).substring(2);
 }
 
-async function agregarFila() {
-    limpiarErrores();
+async function agregarFila(event) {
+  event.preventDefault();
 
-    const nombre = inputNombre.value.trim();
-    const edadTexto = inputEdad.value.trim();
+  const nombre = document.querySelector("#nombre").value;
+  const edad = document.querySelector("#edad").value;
 
-    if (!validarFormulario(nombre, edadTexto)) return;
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json" // OBLIGATORIO para enviar JSON
+      },
+      body: JSON.stringify({
+        nombre: nombre,
+        edad: Number(edad) // OBLIGATORIO: convertir el string a número para Zod
+      })
+    });
 
-    const edad = Number(edadTexto);
-
-    try {
-        if (indiceEdicion === null) {
-            // CREAR (POST)
-            const res = await fetch(API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ nombre, edad })
-            });
-            if (!res.ok) throw new Error("Error al guardar");
-            const nuevaPersona = await res.json();
-            personas.push(nuevaPersona);
-        } else {
-            // ACTUALIZAR (PUT)
-            const res = await fetch(`${API_URL}/${indiceEdicion}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ nombre, edad })
-            });
-            if (!res.ok) throw new Error("Error al actualizar");
-            const personaActualizada = await res.json();
-            
-            const personaIndex = personas.findIndex(p => p.id === indiceEdicion);
-            if (personaIndex !== -1) {
-                personas[personaIndex] = personaActualizada;
-            }
-            cancelarEdicion();
-        }
-
-        renderTabla();
-        inputNombre.value = "";
-        inputEdad.value = "";
-        inputNombre.focus();
-    } catch (err) {
-        alert("Ocurrió un error al guardar los datos en el servidor.");
-        console.error(err);
+    if (!res.ok) {
+      const errorData = await res.json();
+      console.error("Error de validación:", errorData);
+      alert("Error: " + (errorData.detalles?.join(", ") || errorData.error));
+      return;
     }
+
+    // Limpiar formulario y recargar tabla
+    document.querySelector("#mi-formulario").reset();
+    cargarPersonas();
+
+  } catch (error) {
+    console.error("Error en la petición:", error);
+  }
 }
 
 function cancelarEdicion() {
