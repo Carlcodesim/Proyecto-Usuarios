@@ -135,6 +135,23 @@ async function cargarDatosBD() {
     renderTabla();
 }
 
+async function cargarPersonas() {
+  const tabla = document.querySelector("#tabla-body"); // Ajusta a tu selector
+  
+  // Mensaje visual inmediato de carga
+  tabla.innerHTML = `<tr><td colspan="3" style="text-align:center;">⏳ Conectando con el servidor...</td></tr>`;
+
+  try {
+    const res = await fetch(API_URL);
+    if (!res.ok) throw new Error("Error al consultar la API");
+    
+    const personas = await res.json();
+    renderizarTabla(personas);
+  } catch (error) {
+    tabla.innerHTML = `<tr><td colspan="3" style="text-align:center; color:red;">❌ Error al cargar los datos</td></tr>`;
+  }
+}
+
 function limpiarErrores() {
     errorNombre.textContent = "";
     errorEdad.textContent = "";

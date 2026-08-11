@@ -1,9 +1,16 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { PrismaClient } from "@prisma/client";
+import { z } from "zod";
 
 const fastify = Fastify({ logger: true });
 const prisma = new PrismaClient();
+
+// Esquema de reglas para crear/editar una persona
+const personaSchema = z.object({
+  nombre: z.string().min(2, "El nombre debe tener al menos 2 caracteres").trim(),
+  edad: z.number({ invalid_type_error: "La edad debe ser un número" }).int().positive("La edad debe ser mayor a 0")
+});
 
 await fastify.register(cors, { origin: "*" });
 
@@ -20,17 +27,21 @@ fastify.get("/api/personas", async (request, reply) => {
   return personas;
 });
 
-// POST: Crear una persona
+/// POST: Crear persona
 fastify.post("/api/personas", async (request, reply) => {
-  const { nombre, edad } = request.body;
-  
-  if (!nombre || edad === undefined || edad === null) {
-    return reply.status(400).send({ error: "Nombre y edad son obligatorios" });
+  const validacion = personaSchema.safeParse(request.body);
+
+  if (!validacion.success) {
+    return reply.status(400).send({
+      error: "Datos inválidos",
+      detalles: validacion.error.errors.map(err => err.message)
+    });
   }
 
   const nuevaPersona = await prisma.persona.create({
-    data: { nombre, edad: Number(edad) },
+    data: validacion.data
   });
+
   return reply.status(201).send(nuevaPersona);
 });
 
