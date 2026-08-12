@@ -61,8 +61,8 @@ function aplicarTema(tema) {
 }
 
 // --- EVENTOS ---
-form.addEventListener("submit", (evento) => {
-    evento.preventDefault();
+form.addEventListener("submit", (e) => {
+    e.preventDefault();
     guardarPersona();
 });
 
