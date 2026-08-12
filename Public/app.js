@@ -1,9 +1,5 @@
 let personas = [];
-// Correcto:
 const API_URL = "https://proyecto-usuarios-62v9.onrender.com/api/personas";
-
-// Incorrecto (provoca Failed to fetch en GitHub Pages):
-// const API_URL = "http://proyecto-usuarios-62v9.onrender.com/api/personas";
 
 let indiceEdicion = null;
 let ordenCampo = null;
@@ -67,7 +63,7 @@ function aplicarTema(tema) {
 // --- EVENTOS ---
 form.addEventListener("submit", (evento) => {
     evento.preventDefault();
-    agregarFila();
+    guardarPersona();
 });
 
 btnCancelar.addEventListener("click", cancelarEdicion);
@@ -115,45 +111,38 @@ btnConfirmarModal.addEventListener("click", async () => {
             });
             if (!res.ok) throw new Error("Error al eliminar");
 
-            personas = personas.filter(p => p.id !== idParaEliminar);
             if (indiceEdicion === idParaEliminar) cancelarEdicion();
-            renderTabla();
+            idParaEliminar = null;
+            modalEliminar.close();
+            cargarPersonas();
         } catch (err) {
             alert("No se pudo eliminar el registro del servidor.");
             console.error(err);
+            modalEliminar.close();
         }
     }
-    modalEliminar.close();
 });
 
-// --- FUNCIONES ---
-async function cargarDatosBD() {
+// --- FUNCIONES Y CONEXIÓN A LA API ---
+async function cargarPersonas() {
+    const tbody = document.querySelector("#tablaPersonas tbody");
+    if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">⏳ Conectando con el servidor...</td></tr>`;
+    }
+
     try {
         const res = await fetch(API_URL);
         if (!res.ok) throw new Error("Error al obtener personas");
+        
         personas = await res.json();
+        renderTabla();
     } catch (err) {
         console.error("Error al conectar con la API:", err);
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:red;">❌ Error al cargar los datos</td></tr>`;
+        }
         personas = [];
     }
-    renderTabla();
-}
-
-async function cargarPersonas() {
-  const tabla = document.querySelector("#tabla-body"); // Ajusta a tu selector
-  
-  // Mensaje visual inmediato de carga
-  tabla.innerHTML = `<tr><td colspan="3" style="text-align:center;">⏳ Conectando con el servidor...</td></tr>`;
-
-  try {
-    const res = await fetch(API_URL);
-    if (!res.ok) throw new Error("Error al consultar la API");
-    
-    const personas = await res.json();
-    renderizarTabla(personas);
-  } catch (error) {
-    tabla.innerHTML = `<tr><td colspan="3" style="text-align:center; color:red;">❌ Error al cargar los datos</td></tr>`;
-  }
 }
 
 function limpiarErrores() {
@@ -184,8 +173,8 @@ function validarFormulario(nombre, edadTexto) {
         esValido = false;
     } else {
         const edad = Number(edadTexto);
-        if (edad < 0 || edad > 119) {
-            marcarError(inputEdad, errorEdad, "La edad debe estar entre 0 y 119.");
+        if (edad <= 0 || edad > 119) {
+            marcarError(inputEdad, errorEdad, "La edad debe ser mayor a 0 y menor a 120.");
             esValido = false;
         }
     }
@@ -193,51 +182,52 @@ function validarFormulario(nombre, edadTexto) {
     return esValido;
 }
 
-function generarID() {
-    return typeof crypto !== "undefined" && crypto.randomUUID
-        ? crypto.randomUUID()
-        : Date.now().toString(36) + Math.random().toString(36).substring(2);
-}
+async function guardarPersona() {
+    limpiarErrores();
 
-async function agregarFila(event) {
-  event.preventDefault();
+    const nombre = inputNombre.value.trim();
+    const edadTexto = inputEdad.value.trim();
 
-  const nombre = document.querySelector("#nombre").value;
-  const edad = document.querySelector("#edad").value;
-
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json" // OBLIGATORIO para enviar JSON
-      },
-      body: JSON.stringify({
-        nombre: nombre,
-        edad: Number(edad) // OBLIGATORIO: convertir el string a número para Zod
-      })
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json();
-      console.error("Error de validación:", errorData);
-      alert("Error: " + (errorData.detalles?.join(", ") || errorData.error));
-      return;
+    if (!validarFormulario(nombre, edadTexto)) {
+        return;
     }
 
-    // Limpiar formulario y recargar tabla
-    document.querySelector("#mi-formulario").reset();
-    cargarPersonas();
+    const datos = {
+        nombre: nombre,
+        edad: Number(edadTexto)
+    };
 
-  } catch (error) {
-    console.error("Error en la petición:", error);
-  }
+    const esEdicion = indiceEdicion !== null;
+    const url = esEdicion ? `${API_URL}/${indiceEdicion}` : API_URL;
+    const metodo = esEdicion ? "PUT" : "POST";
+
+    try {
+        const res = await fetch(url, {
+            method: metodo,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(datos)
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            alert("Error: " + (errorData.detalles?.join(", ") || errorData.error));
+            return;
+        }
+
+        cancelarEdicion();
+        cargarPersonas();
+    } catch (error) {
+        console.error("Error en la petición:", error);
+        alert("No se pudo conectar con el servidor.");
+    }
 }
 
 function cancelarEdicion() {
     indiceEdicion = null;
     limpiarErrores();
-    inputNombre.value = "";
-    inputEdad.value = "";
+    form.reset();
     formTitle.textContent = "Agregar persona";
     btnAgregar.textContent = "Agregar";
     btnCancelar.hidden = true;
@@ -366,10 +356,6 @@ function renderTabla() {
     actualizarFlechasOrden();
 }
 
-function guardarDatos() {
-    // Ya no requerimos localStorage.setItem("personas", ...)
-}
-
 function descargarArchivo(nombreArchivo, contenido, tipoMime) {
     const blob = new Blob([contenido], { type: tipoMime });
     const url = URL.createObjectURL(blob);
@@ -443,35 +429,37 @@ function importarJSON(evento) {
         let agregadas = 0;
         let omitidas = 0;
 
-        datos.forEach((item) => {
+        datos.forEach(async (item) => {
             const nombre = typeof item?.nombre === "string" ? item.nombre.trim() : "";
             const edad = Number(item?.edad);
 
-            const esValido = nombre && Number.isInteger(edad) && edad >= 0 && edad <= 119;
+            const esValido = nombre && Number.isInteger(edad) && edad > 0 && edad <= 119;
 
             if (!esValido) {
                 omitidas++;
                 return;
             }
 
-            personas.push({
-                id: generarID(),
-                nombre,
-                edad
-            });
-
-            agregadas++;
+            try {
+                await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ nombre, edad })
+                });
+                agregadas++;
+            } catch (err) {
+                omitidas++;
+            }
         });
 
-        guardarDatos();
-        renderTabla();
+        cargarPersonas();
 
         if (omitidas === 0) {
             mostrarEstadoImport(`Se importaron ${agregadas} persona(s).`);
         } else {
             mostrarEstadoImport(
-                `Se importaron ${agregadas} persona(s). Se omitieron ${omitidas} por datos inválidos.`,
-                agregadas === 0
+                `Se completó la importación. Revisa la tabla actualizada.`,
+                false
             );
         }
 
@@ -509,8 +497,9 @@ function actualizarEstadisticas(personasLista) {
     const menor = personasLista.find(p => Number(p.edad) === edadMinima);
 
     statPromedio.textContent = `${promedio} yrs`;
-    statMayor.textContent = `${mayor.nombre} (${mayor.edad})`;
-    statMenor.textContent = `${menor.nombre} (${menor.edad})`;
+    statMayor.textContent = `${mayor ? mayor.nombre : '-'} (${edadMaxima})`;
+    statMenor.textContent = `${menor ? menor.nombre : '-'} (${edadMinima})`;
 }
 
-cargarDatosBD();
+// Inicializar la carga con la API de Render
+cargarPersonas();
